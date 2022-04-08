@@ -1,15 +1,17 @@
-from datetime import datetime, timedelta
-
-import matplotlib.pyplot as plt
-import tweepy
-from PIL import Image, ImageDraw, ImageFont
-from wordcloud import ImageColorGenerator, WordCloud
-import numpy as np
 import math
 from collections import Counter
+from datetime import datetime, timedelta
+
 
 import config
-from twit import makeitastring
+
+# import matplotlib.pyplot as plt
+import numpy as np
+import tweepy
+from PIL import Image, ImageDraw, ImageFont
+
+# from twit import makeitastring
+# from wordcloud import ImageColorGenerator, WordCloud
 
 auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
 auth.set_access_token(config.access_token, config.access_token_secret)
@@ -20,7 +22,7 @@ client = tweepy.Client(bearer_token=config.bearer_token)
 
 class MoLegTwitter:
     def __init__(self):
-        self.query = "moleg OR mogov OR mosenate OR mosen"
+        self.query = "(moleg OR mogov OR mosenate OR mosen) -is:retweet"
         # self.query = "moleg"
         self.hours_delta = 72
         self.max_cloud_words = 100
@@ -42,11 +44,90 @@ class MoLegTwitter:
 
         return dict
 
+    def hydrate_tweets(self):
+
+        response = tweepy.Paginator(
+            client.search_recent_tweets,
+            self.query,
+            tweet_fields=[
+                "attachments",
+                "author_id",
+                "context_annotations",
+                "conversation_id",
+                "created_at",
+                "entities",
+                "geo,id",
+                "in_reply_to_user_id",
+                "lang",
+                "possibly_sensitive",
+                "public_metrics",
+                "referenced_tweets",
+                "reply_settings",
+                "source",
+                "text",
+                "withheld",
+            ],
+            user_fields=[
+                "created_at",
+                "description",
+                "entities,id",
+                "location",
+                "name",
+                "pinned_tweet_id",
+                "profile_image_url",
+                "protected,public_metrics",
+                "url",
+                "username",
+                "verified",
+                "withheld",
+            ],
+            expansions=[
+                "attachments.poll_ids",
+                "attachments.media_keys",
+                "author_id",
+                "geo.place_id",
+                "in_reply_to_user_id",
+                "referenced_tweets.id",
+                "entities.mentions.username",
+                "referenced_tweets.id.author_id",
+            ],
+            media_fields=[
+                "duration_ms",
+                "height",
+                "media_key",
+                "preview_image_url",
+                "promoted_metrics",
+                "public_metrics",
+                "type,url",
+            ],
+            place_fields=[
+                "contained_within,country",
+                "country_code",
+                "full_name",
+                "geo,id",
+                "name",
+                "place_type",
+            ],
+            poll_fields=[
+                "duration_minutes",
+                "end_datetime",
+                "id",
+                "options",
+                "voting_status",
+            ],
+            max_results=100,
+        ).flatten(limit=500)
+
+        return response
+
     def get_most_common(self, list, num_items):
         Counters_found = Counter(list)
         most_occur = Counters_found.most_common(num_items)
-
         return most_occur
+
+    def makeitastring(self, wannabestring):
+        convertedstring = ",".join(map(str, wannabestring))
+        return convertedstring
 
     def get_hashtag_cloud(self, hashtags):
         mo_mask = np.array(Image.open("mo.jpg"))
@@ -67,53 +148,49 @@ class MoLegTwitter:
         cloud = cloud.to_file("hashtags.png")
         # my_image = Image.open("cloud.png")
 
-    def get_hashtags(self, filename="none", number_hashtags=200):
-        htag_list = []
-        tweet_arguments = self.__num_tweets_arguments(number_hashtags)
-        max_results = tweet_arguments.get("max_results")
-        limit = tweet_arguments.get("limit")
+    def get_hashtags(self, data):
 
-        i = 0
+        hashtag_list = []
+        for tweet in tweets:
+            try:
+                h = tweet["entities"]
+                h = h.get("hashtags")
+                if h:
+                    for index in range(0, len(h)):
 
-        for response in tweepy.Paginator(
-            client.search_recent_tweets,
-            self.query,
-            tweet_fields=["entities", "created_at"],
-            max_results=max_results,
-            limit=limit,
-        ):
+                        if h[index].get("tag").lower() not in (
+                            "moleg",
+                            "mogov",
+                            "mosenate",
+                            "mosen",
+                        ):
+                            hashtag_list.append(h[index].get("tag"))
+                            print(h[index].get("tag"))
+            except:
+                print("no tag")
 
-            i = i + 1
-            tweets = response.data
-            for tweet in tweets:
-                print(tweet.created_at)
-                i = i + 1
-                print(i)
-                try:
-                    if tweet["entities"]["hashtags"] is not None:
-                        # print(
-                        #     f"created at {tweet.created_at} - {tweet.text} - result - {i}"
-                        # )
-                        for h in tweet["entities"]["hashtags"]:
-                            htag = h.get("tag")
-                            htag = htag.lower()
-                            if htag not in ("moleg", "mogov", "mosenate", "mosen"):
-                                htag_list.append(htag)
-
-                except:
-                    pass
-
-        filename = filename.lower()
-        if filename != "none":
-            with open(filename, "w", encoding="utf8") as f:
-                f.write(makeitastring(htag_list))
-                f.write("\n")
-
-        return htag_list
+        return hashtag_list
 
 
 m = MoLegTwitter()
-hashtags = m.get_hashtags(filename="hashtags-moleg.txt", number_hashtags=100)
-total = m.get_most_common(hashtags, 15)
-print(total)
-print(type(total))
+
+tweets = m.hydrate_tweets()
+for x in tweets:
+    print(x.created_at, x.text)
+
+# hashtags = m.get_hashtags(tweets)
+# print(hashtags)
+
+
+# print(hashtag_list)
+
+# # hashtag_list = m.makeitastring(hashtag_list)
+
+print(m.get_most_common(hashtags, 20))
+
+# hashtags = m.get_hashtags(tweets)
+# print(hashtags)
+# hashtags = m.get_hashtags(filename="hashtags-moleg.txt", number_hashtags=100)
+# total = m.get_most_common(hashtags, 15)
+# print(total)
+# print(type(total))
