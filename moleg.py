@@ -177,5 +177,3 @@ m = MoLegTwitter()
 tweets = m.hydrate_tweets()
 for x in tweets:
     print(x.created_at, x.text)
-
-# print(m.get_most_common(hashtags, 20))
