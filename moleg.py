@@ -178,19 +178,4 @@ tweets = m.hydrate_tweets()
 for x in tweets:
     print(x.created_at, x.text)
 
-# hashtags = m.get_hashtags(tweets)
-# print(hashtags)
-
-
-# print(hashtag_list)
-
-# # hashtag_list = m.makeitastring(hashtag_list)
-
-print(m.get_most_common(hashtags, 20))
-
-# hashtags = m.get_hashtags(tweets)
-# print(hashtags)
-# hashtags = m.get_hashtags(filename="hashtags-moleg.txt", number_hashtags=100)
-# total = m.get_most_common(hashtags, 15)
-# print(total)
-# print(type(total))
+# print(m.get_most_common(hashtags, 20))
