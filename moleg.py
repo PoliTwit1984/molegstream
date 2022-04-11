@@ -1,6 +1,7 @@
 import math
 from collections import Counter
 from datetime import datetime, timedelta
+from re import U
 
 
 import config
@@ -116,7 +117,7 @@ class MoLegTwitter:
                 "voting_status",
             ],
             max_results=100,
-        ).flatten(limit=500)
+        ).flatten(limit=1000)
 
         return response
 
@@ -151,7 +152,7 @@ class MoLegTwitter:
     def get_hashtags(self, data):
 
         hashtag_list = []
-        for tweet in tweets:
+        for tweet in data:
             try:
                 h = tweet["entities"]
                 h = h.get("hashtags")
@@ -165,15 +166,171 @@ class MoLegTwitter:
                             "mosen",
                         ):
                             hashtag_list.append(h[index].get("tag"))
-                            print(h[index].get("tag"))
+
             except:
                 print("no tag")
 
         return hashtag_list
 
+    def get_mentions(self, data):
+
+        mentions_list = []
+        for tweet in data:
+            try:
+                m = tweet["entities"]
+                m = m.get("mentions")
+
+                if m:
+                    for index in range(0, len(m)):
+
+                        mentions_list.append(m[index].get("username"))
+
+            except:
+                pass
+
+        return mentions_list
+
+    def get_my_mentions(self, username):
+
+        tweet_list = []
+
+        my_query = f"(@{username}) -is:retweet"
+
+        response = tweepy.Paginator(
+            client.search_recent_tweets,
+            my_query,
+            tweet_fields=[
+                "attachments",
+                "author_id",
+                "context_annotations",
+                "conversation_id",
+                "created_at",
+                "entities",
+                "geo,id",
+                "in_reply_to_user_id",
+                "lang",
+                "possibly_sensitive",
+                "public_metrics",
+                "referenced_tweets",
+                "reply_settings",
+                "source",
+                "text",
+                "withheld",
+            ],
+            user_fields=[
+                "created_at",
+                "description",
+                "entities,id",
+                "location",
+                "name",
+                "pinned_tweet_id",
+                "profile_image_url",
+                "protected,public_metrics",
+                "url",
+                "username",
+                "verified",
+                "withheld",
+            ],
+            expansions=[
+                "attachments.poll_ids",
+                "attachments.media_keys",
+                "author_id",
+                "geo.place_id",
+                "in_reply_to_user_id",
+                "referenced_tweets.id",
+                "entities.mentions.username",
+                "referenced_tweets.id.author_id",
+            ],
+            media_fields=[
+                "duration_ms",
+                "height",
+                "media_key",
+                "preview_image_url",
+                "promoted_metrics",
+                "public_metrics",
+                "type,url",
+            ],
+            place_fields=[
+                "contained_within,country",
+                "country_code",
+                "full_name",
+                "geo,id",
+                "name",
+                "place_type",
+            ],
+            poll_fields=[
+                "duration_minutes",
+                "end_datetime",
+                "id",
+                "options",
+                "voting_status",
+            ],
+            max_results=100,
+        ).flatten(limit=1000)
+
+        return response
+
+    def get_my_moleg_mentions(self, data):
+        tweet_list = []
+
+        for hashtags in data:
+            try:
+                m = hashtags["entities"]
+                m = m.get("hashtags")
+                if m:
+                    for index in range(0, len(m)):
+
+                        if (
+                            m[index].get("tag") == "moleg"
+                            or m[index].get("tag") == "mosenate"
+                            or m[index].get("tag") == "mogov"
+                            or m[index].get("tag") == "mosen"
+                        ):
+                            tweet_list.append(hashtags.text)
+            except:
+                pass
+
+        return tweet_list
+
 
 m = MoLegTwitter()
+response = m.hydrate_tweets()
 
-tweets = m.hydrate_tweets()
-for x in tweets:
-    print(x.created_at, x.text)
+# # tweets = m.hydrate_tweets()
+# # hashtags = m.get_hashtags(tweets)
+# # print(m.get_most_common(hashtags, 20))
+# # mentions = m.get_mentions(tweets)
+# # print(mentions)
+# # print(m.get_most_common(mentions, 20))
+
+# my_mentions = m.get_my_mentions("LauraANNSTL")
+# # l = m.get_my_moleg_mentions((my_mentions))
+# l = m.get_my_moleg_mentions(my_mentions)
+
+
+# # print(m.get_most_common(l, 20))
+
+# for index in range(0, len(l)):
+#     print(l[index])
+#     print("\n")
+
+
+# # for tweet in my_mentions:
+# #     tweet_text = tweet.text
+# #     word = tweet_text.find("#moleg")
+# #     print(word)
+
+# mentions = m.get_mentions((response))
+# top_mentions = m.get_most_common(mentions, 50)
+
+
+# for index in range(0, len(top_mentions)):
+#     tm = top_mentions[index]
+#     print(tm[1], tm[0])
+
+# a = 1
+
+# h = m.get_hashtags(response)
+# th = m.get_most_common(h, 20)
+
+# print(th)
