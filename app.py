@@ -8,13 +8,10 @@ st.sidebar.title("Moleg Twitter Analysis Tools")
 page = st.sidebar.selectbox(
     "Select Tool",
     [
+        "User Information",
         "Top Hashtags",
         "Top Mentions",
-        "Twitter User Liked Posts WordCloud",
-        "Twitter Lists a User Belongs",
-        "Twitter database tests",
-        "Real time Biden Sentiment",
-        "Real time WordCloud",
+        "User List Memberships",
         "St. Louis Twitter Trends",
     ],
 )
@@ -24,8 +21,29 @@ m = MoLegTwitter()
 
 response = m.hydrate_tweets()
 
+if page == "User Information":
+    st.header("Moleg Utilities - Get User Info")
+    twitter_user = st.text_input(
+        "Enter Twitter screenname to get information about Twitter user."
+    )
+    if twitter_user:
+        user_dict = m.get_user_information(twitter_user)
+        st.write("User Twitter screen name: ", user_dict["screen_name"])
+        st.write("User Name: ", user_dict["user_name"])
+        st.write("User Description: ", user_dict["user_description"])
+        st.write("User location: ", user_dict["user_location"])
+        st.write("User created on: ", user_dict["user_created_at"])
+        st.write("User Tweets: ", user_dict["user_tweets"])
+        st.write("User liked tweets: ", user_dict["user_liked_tweets"])
+        st.write("User followers count: ", user_dict["user_followers_count"])
+        st.write("User following count: ", user_dict["user_following_count"])
+        st.write("User geo-enabled: ", user_dict["user_get_enabled"])
+        st.write("User Twitter ID: ", user_dict["user_twitter_id"])
+        st.write("User list memberships: ", user_dict["user_listed_count"])
 
-if page == "Top Hashtags":
+
+elif page == "Top Hashtags":
+    st.header("Moleg Utilities - Top Hashtags")
     hashtags = m.get_hashtags(response)
     top_hashtags = m.get_most_common(hashtags, 50)
     st.header("Moleg Current Top Hashtags")
@@ -37,7 +55,7 @@ if page == "Top Hashtags":
         st.write("%s -" % h1 + " #" + "%s" % h + " [see here](%s)" % url)
 
 elif page == "Top Mentions":
-
+    st.header("Moleg Utilities - Top Mentions")
     mentions = m.get_mentions(response)
     top_mentions = m.get_most_common(mentions, 50)
     for index in range(0, len(top_mentions)):
@@ -46,3 +64,22 @@ elif page == "Top Mentions":
         m = str(tm[0])
         m1 = str(tm[1])
         st.write("%s -" % m1 + " @" + "%s" % m + " [see here](%s)" % url)
+
+elif page == "St. Louis Twitter Trends":
+    trends = m.get_stl_trends()
+    for value in trends:
+        for trend in value["trends"]:
+            st.write(
+                trend["name"] + " has tweet volume of: " + str(trend["tweet_volume"])
+            )
+
+
+elif page == "User List Memberships":
+    st.header("Moleg Utilities - Get memberships")
+    twitter_username = st.text_input(
+        "Enter screen name to get list of Twitter list memberships."
+    )
+    if twitter_username:
+        twitter_lists = m.get_user_lists(twitter_username)
+        for x in twitter_lists:
+            st.write(x.name, ("https://twitter.com/i/lists/" + str(x.id)))

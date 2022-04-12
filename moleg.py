@@ -292,9 +292,45 @@ class MoLegTwitter:
 
         return tweet_list
 
+    def get_user_information(self, twitter_user):
 
-m = MoLegTwitter()
-response = m.hydrate_tweets()
+        dict = {}
+        user = api.get_user(screen_name=twitter_user)
+        dict["screen_name"] = user.screen_name
+        dict["user_name"] = user.name
+        dict["user_description"] = user.description
+        dict["user_location"] = user.location
+        dict["user_created_at"] = user.created_at
+        dict["user_tweets"] = user.statuses_count
+        dict["user_liked_tweets"] = user.favourites_count
+        dict["user_followers_count"] = user.followers_count
+        dict["user_following_count"] = user.friends_count
+        dict["user_get_enabled"] = user.geo_enabled
+        dict["user_twitter_id"] = user.id
+        dict["user_listed_count"] = user.listed_count
+
+        return dict
+
+    def get_stl_trends(self):
+        trends = api.get_place_trends(id="23424977")
+
+        return trends
+
+    def get_user_lists(self, twitter_username):
+        userinfo = api.get_user(screen_name=twitter_username)
+        user_id = userinfo.id
+        user_lists = client.get_list_memberships(user_id)
+
+        return user_lists.data
+
+
+# m = MoLegTwitter()
+# response = m.hydrate_tweets()
+
+# twitter_lists = m.get_user_lists("dingersandks")
+# print(twitter_lists)
+# for x in twitter_lists:
+#     print(x.name, x.id)
 
 # # tweets = m.hydrate_tweets()
 # # hashtags = m.get_hashtags(tweets)
