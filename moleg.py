@@ -3,13 +3,13 @@ from collections import Counter
 from datetime import datetime, timedelta
 from re import U
 
-
-import config
-
 # import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import tweepy
 from PIL import Image, ImageDraw, ImageFont
+
+import config
 
 # from twit import makeitastring
 # from wordcloud import ImageColorGenerator, WordCloud
@@ -18,10 +18,19 @@ auth = tweepy.OAuthHandler(config.consumer_key, config.consumer_secret)
 auth.set_access_token(config.access_token, config.access_token_secret)
 bearer_token = config.bearer_token
 api = tweepy.API(auth)
-client = tweepy.Client(bearer_token=config.bearer_token)
+client = tweepy.Client(
+    bearer_token=config.bearer_token,
+    consumer_key=config.consumer_key,
+    consumer_secret=config.consumer_secret,
+    access_token=config.dat,
+    access_token_secret=config.das,
+)
 
 
 class MoLegTwitter:
+
+    TOTAL_RESULTS = 1000
+
     def __init__(self):
         self.query = "(moleg OR mogov OR mosenate OR mosen) -is:retweet"
         # self.query = "moleg"
@@ -117,7 +126,7 @@ class MoLegTwitter:
                 "voting_status",
             ],
             max_results=100,
-        ).flatten(limit=1000)
+        ).flatten(limit=self.TOTAL_RESULTS)
 
         return response
 
@@ -190,85 +199,22 @@ class MoLegTwitter:
 
         return mentions_list
 
-    def get_my_mentions(self, username):
+    def get_my_mentions(self, id):
 
-        tweet_list = []
-
-        my_query = f"(@{username}) -is:retweet"
-
+        mention_tweets = []
+        mention_row = []
         response = tweepy.Paginator(
-            client.search_recent_tweets,
-            my_query,
-            tweet_fields=[
-                "attachments",
-                "author_id",
-                "context_annotations",
-                "conversation_id",
-                "created_at",
-                "entities",
-                "geo,id",
-                "in_reply_to_user_id",
-                "lang",
-                "possibly_sensitive",
-                "public_metrics",
-                "referenced_tweets",
-                "reply_settings",
-                "source",
-                "text",
-                "withheld",
-            ],
-            user_fields=[
-                "created_at",
-                "description",
-                "entities,id",
-                "location",
-                "name",
-                "pinned_tweet_id",
-                "profile_image_url",
-                "protected,public_metrics",
-                "url",
-                "username",
-                "verified",
-                "withheld",
-            ],
-            expansions=[
-                "attachments.poll_ids",
-                "attachments.media_keys",
-                "author_id",
-                "geo.place_id",
-                "in_reply_to_user_id",
-                "referenced_tweets.id",
-                "entities.mentions.username",
-                "referenced_tweets.id.author_id",
-            ],
-            media_fields=[
-                "duration_ms",
-                "height",
-                "media_key",
-                "preview_image_url",
-                "promoted_metrics",
-                "public_metrics",
-                "type,url",
-            ],
-            place_fields=[
-                "contained_within,country",
-                "country_code",
-                "full_name",
-                "geo,id",
-                "name",
-                "place_type",
-            ],
-            poll_fields=[
-                "duration_minutes",
-                "end_datetime",
-                "id",
-                "options",
-                "voting_status",
-            ],
-            max_results=100,
-        ).flatten(limit=1000)
+            client.get_users_mentions,
+            id=config.dingersid,
+            tweet_fields=["created_at"],
+        ).flatten(limit=300)
 
-        return response
+        for tweet in response:
+            print(tweet.data)
+            mention_row = [tweet.created_at, tweet.text]
+            mention_tweets.append(mention_row)
+
+        return mention_tweets
 
     def get_my_moleg_mentions(self, data):
         tweet_list = []
@@ -323,50 +269,107 @@ class MoLegTwitter:
 
         return user_lists.data
 
+    def get_auth_user(self):
+        me = client.get_me().data
+        return me
 
-# m = MoLegTwitter()
-# response = m.hydrate_tweets()
+    def get_tweet_performance(self):
+        df = pd.DataFrame(
+            columns=[
+                "Tweet_id",
+                "Created_at",
+                "Tweet",
+                "Likes",
+                "Retweets",
+                "Impression_Count",
+                "Profile_Clicks",
+                "Link",
+            ]
+        )
+        _me = client.get_me().data
+        query = f"from:{_me}"
+        text = "see tweet"
 
-# twitter_lists = m.get_user_lists("dingersandks")
-# print(twitter_lists)
-# for x in twitter_lists:
-#     print(x.name, x.id)
+        response = client.get_users_tweets(
+            id=config.dingersid,
+            tweet_fields=["organic_metrics", "non_public_metrics", "created_at"],
+            max_results=100,
+            user_auth=True,
+        )
 
-# # tweets = m.hydrate_tweets()
-# # hashtags = m.get_hashtags(tweets)
-# # print(m.get_most_common(hashtags, 20))
-# # mentions = m.get_mentions(tweets)
-# # print(mentions)
-# # print(m.get_most_common(mentions, 20))
+        # response = client.search_recent_tweets(
+        #     query=query,
+        #     user_auth=True,
+        #     tweet_fields=["organic_metrics", "non_public_metrics", "created_at"],
+        #     max_results=100,
+        # )
+        for tweet in response.data:
 
-# my_mentions = m.get_my_mentions("LauraANNSTL")
-# # l = m.get_my_moleg_mentions((my_mentions))
-# l = m.get_my_moleg_mentions(my_mentions)
+            tweet_link = f"https://www.twitter.com/twitter/statuses/{tweet.id}"
+            url = f'<a target="_blank" href="{tweet_link}">{text}</a>'
+
+            df = df.append(
+                {
+                    "Tweet_id": tweet.id,
+                    "Created_at": tweet.created_at,
+                    "Tweet": tweet.text,
+                    "Likes": tweet["organic_metrics"].get("like_count"),
+                    "Retweets": tweet["organic_metrics"].get("retweet_count"),
+                    "Impression_Count": tweet["organic_metrics"].get(
+                        "impression_count"
+                    ),
+                    "Profile_Clicks": tweet["organic_metrics"].get(
+                        "user_profile_clicks"
+                    ),
+                    "Link": url,
+                },
+                ignore_index=True,
+            )
+            #
+
+        df = df.to_html(escape=False)
+
+        return df
+
+    def convert_user_id_to_name(self, id):
+        screen_name = client.get_user(id=id)
+
+        return screen_name.data
+
+    def get_most_active_users(self, data):
+        user_list = []
+        name_list = []
+        for tweet in data:
+            u = tweet.author_id
+            user_list.append(u)
+
+        return user_list
+
+    def get_user_list_names(self, user_list):
+        active_list = []
+        for index in range(0, len(user_list)):
+            temp = user_list[index]
+            name = client.get_user(id=temp[0])
+            name = name.data
+            name = name.get("username")
+            posts = temp[1]
+            temp_list = [name, posts]
+            active_list.append(temp_list)
+
+        return active_list
 
 
-# # print(m.get_most_common(l, 20))
-
-# for index in range(0, len(l)):
-#     print(l[index])
-#     print("\n")
+m = MoLegTwitter()
+me = m.get_my_mentions(id=config.dingersid)
 
 
-# # for tweet in my_mentions:
-# #     tweet_text = tweet.text
-# #     word = tweet_text.find("#moleg")
-# #     print(word)
+# au = []
+# user_list = m.get_most_active_users(data)
+# top_users = m.get_most_common(user_list, 30)
+# au = m.get_user_list_names(top_users)
 
-# mentions = m.get_mentions((response))
-# top_mentions = m.get_most_common(mentions, 50)
+# print(au)
 
-
-# for index in range(0, len(top_mentions)):
-#     tm = top_mentions[index]
-#     print(tm[1], tm[0])
-
-# a = 1
-
-# h = m.get_hashtags(response)
-# th = m.get_most_common(h, 20)
-
-# print(th)
+# response =  tweepy.Paginator(client.get_users_mentions, id=config.dingersid,
+#                                max_results=100).flatten(limit=800)
+# response = client.get_users_mentions(id=config.dingersid, max_results=100)

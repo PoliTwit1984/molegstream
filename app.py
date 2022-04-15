@@ -3,6 +3,9 @@ import tweepy
 import config
 from moleg import MoLegTwitter
 
+m = MoLegTwitter()
+response = m.hydrate_tweets()
+
 
 st.sidebar.title("Moleg Twitter Analysis Tools")
 page = st.sidebar.selectbox(
@@ -11,15 +14,14 @@ page = st.sidebar.selectbox(
         "User Information",
         "Top Hashtags",
         "Top Mentions",
+        "Top Moleg Tweeters",
+        "My Tweet Performance",
         "User List Memberships",
         "St. Louis Twitter Trends",
     ],
 )
 st.title("Politwit1984 Twitter Analytic Tools")
 
-m = MoLegTwitter()
-
-response = m.hydrate_tweets()
 
 if page == "User Information":
     st.header("Moleg Utilities - Get User Info")
@@ -83,3 +85,17 @@ elif page == "User List Memberships":
         twitter_lists = m.get_user_lists(twitter_username)
         for x in twitter_lists:
             st.write(x.name, ("https://twitter.com/i/lists/" + str(x.id)))
+
+elif page == "My Tweet Performance":
+    st.header("Moleg Utilities - Get Tweet Performance")
+    tweet_performance = m.get_tweet_performance()
+    st.write(tweet_performance, unsafe_allow_html=True)
+    # st.write(df, unsafe_allow_html=True)
+
+elif page == "Top Moleg Tweeters":
+    st.header("Moleg Utilities - Get Top Moleg Tweeters")
+    user_list = m.get_most_active_users(response)
+    top_users = m.get_most_common(user_list, 30)
+    au = m.get_user_list_names(top_users)
+    for index in range(0, len(au)):
+        st.write(au[index][0], au[index][1])
