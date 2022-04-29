@@ -1,7 +1,7 @@
 import streamlit as st
 import tweepy
-import config
-from moleg import MoLegTwitter
+import src.config as config
+from src.moleg import MoLegTwitter
 
 m = MoLegTwitter()
 response = m.hydrate_tweets()
