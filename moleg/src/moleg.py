@@ -1,3 +1,4 @@
+import json
 import math
 from collections import Counter
 from datetime import datetime, timedelta
@@ -6,15 +7,13 @@ from re import U
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from tabulate import tabulate
+import plotly.figure_factory as ff
 import tweepy
 from PIL import Image, ImageDraw, ImageFont
-import json
+from tabulate import tabulate
+import plotly.graph_objects as go
 
 import config
-
-import plotly.figure_factory as ff
-
 
 # from twit import makeitastring
 # from wordcloud import ImageColorGenerator, WordCloud
@@ -161,7 +160,6 @@ class MoLegTwitter:
         plt.imshow(cloud)
         plt.axis("off")
         cloud = cloud.to_file("hashtags.png")
-        # my_image = Image.open("cloud.png")
 
     def get_hashtags(self, data):
 
@@ -182,7 +180,7 @@ class MoLegTwitter:
                             hashtag_list.append("#" + h[index].get("tag"))
 
             except:
-                print("no tag")
+                pass
 
         return hashtag_list
 
@@ -215,7 +213,6 @@ class MoLegTwitter:
         ).flatten(limit=300)
 
         for tweet in response:
-            print(tweet.data)
             mention_row = [tweet.created_at, tweet.text]
             mention_tweets.append(mention_row)
 
@@ -302,12 +299,6 @@ class MoLegTwitter:
             user_auth=True,
         )
 
-        # response = client.search_recent_tweets(
-        #     query=query,
-        #     user_auth=True,
-        #     tweet_fields=["organic_metrics", "non_public_metrics", "created_at"],
-        #     max_results=100,
-        # )
         for tweet in response.data:
 
             tweet_link = f"https://www.twitter.com/twitter/statuses/{tweet.id}"
@@ -332,7 +323,7 @@ class MoLegTwitter:
             )
             #
 
-        df = df.to_html(escape=False)
+        # df = df.to_html(escape=False)
 
         return df
 
@@ -380,7 +371,6 @@ class MoLegTwitter:
         data = top_list
 
         fig = ff.create_table(data)
-        fig.add_layout_image(dict(source="lgbqt.png"))
         fig.update_layout({"margin": {"t": 80}})
         fig.update_layout(title_text=title, title_x=0.5)
         fig.update_layout(font_size=20)
@@ -389,58 +379,4 @@ class MoLegTwitter:
 
         fig.write_image(filename)
 
-        # fig, ax = plt.subplots()
-        # fig.patch.set_visible(False)
-        # ax.axis('off')
-        # ax.table(cellText=data, colLabels=headers, loc='center')
-        # plt.show()
-
         return
-
-
-m = MoLegTwitter()
-response = m.hydrate_tweets()
-au = []
-user_list = m.get_most_active_users(response)
-top_users = m.get_most_common(user_list, 30)
-au = m.get_user_list_names(top_users)
-m.print_stats_graphic(
-    au,
-    30,
-    "Most Active #Moleg Tweeters over last 1000 Tweets",
-    "MAU.png",
-    ["Name", "Username", "Followers Count", "No. of Tweets"],
-    2000,
-    40,
-)
-
-
-response = m.hydrate_tweets()
-hashtag_list = m.get_hashtags(response)
-print(hashtag_list)
-top_hashtags = m.get_most_common(hashtag_list, 30)
-print(top_hashtags)
-m.print_stats_graphic(
-    top_hashtags,
-    30,
-    "Most Active #Moleg Hashtags over last 1000 Tweets",
-    "hash.png",
-    ["Hashtag", "Count"],
-    800,
-    20,
-)
-
-response = m.hydrate_tweets()
-mention_list = m.get_mentions(response)
-print(mention_list)
-top_mentions = m.get_most_common(mention_list, 30)
-print(top_mentions)
-m.print_stats_graphic(
-    top_mentions,
-    30,
-    "Most Active #Moleg @Mentions over last 1000 Tweets",
-    "mentions.png",
-    ["Mention", "Count"],
-    800,
-    20,
-)
